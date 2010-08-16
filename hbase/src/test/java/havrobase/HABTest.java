@@ -80,19 +80,7 @@ public class HABTest {
       binder.bind(byte[].class).annotatedWith(Names.named("family")).toInstance(COLUMN_FAMILY);
 //      binder.bind(String.class).annotatedWith(Names.named("solr")).toInstance("http://localhost:8983/solr/user");
       binder.bind(String.class).annotatedWith(Names.named("solr")).toProvider(NULL_STRING_PROVIDER);
-<<<<<<< Updated upstream
-      binder.bind(HAB.CreateType.class).toInstance(HAB.CreateType.RANDOM_LONG);
-=======
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
       binder.bind(HAB.CreateType.class).toInstance(HAB.CreateType.SEQUENTIAL);
-=======
-      binder.bind(HAB.CreateType.class).toInstance(HAB.CreateType.RANDOM_LONG);
->>>>>>> Stashed changes
-=======
-      binder.bind(HAB.CreateType.class).toInstance(HAB.CreateType.RANDOM_LONG);
->>>>>>> Stashed changes
->>>>>>> Stashed changes
       binder.bind(HTablePool.class).toInstance(new HTablePool());
       binder.bind(HBaseAdmin.class).toInstance(admin);
     }
