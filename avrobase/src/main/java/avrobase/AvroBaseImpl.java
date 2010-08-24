@@ -28,10 +28,11 @@ import java.util.concurrent.ConcurrentHashMap;
  * Date: Jun 23, 2010
  * Time: 12:21:33 PM
  */
-public abstract class AvroBaseImpl<T extends SpecificRecord, K> implements AvroBase<T, K> {
+public abstract class AvroBaseImpl<T extends SpecificRecord, K, Q> implements AvroBase<T, K, Q> {
 
   protected Map<String, Schema> schemaCache = new ConcurrentHashMap<String, Schema>();
   protected Map<Schema, String> hashCache = new ConcurrentHashMap<Schema, String>();
+  private Schema expectedSchema;
   protected AvroFormat format;
 
   protected static final Charset UTF8 = Charset.forName("utf-8");
@@ -43,7 +44,8 @@ public abstract class AvroBaseImpl<T extends SpecificRecord, K> implements AvroB
    *
    * @param format
    */
-  public AvroBaseImpl(AvroFormat format) {
+  public AvroBaseImpl(Schema expectedSchema, AvroFormat format) {
+    this.expectedSchema = expectedSchema;
     this.format = format;
   }
 
@@ -79,7 +81,7 @@ public abstract class AvroBaseImpl<T extends SpecificRecord, K> implements AvroB
    * Load a schema from the schema table
    */
   protected Schema loadSchema(byte[] value, String row) throws AvroBaseException {
-    Schema schema = null;
+    Schema schema;
     try {
       schema = Schema.parse(new ByteArrayInputStream(value));
     } catch (IOException e) {
@@ -146,7 +148,8 @@ public abstract class AvroBaseImpl<T extends SpecificRecord, K> implements AvroB
    * Read the avro serialized data using the specified schema and format
    * in the hbase row
    */
-  protected T readValue(byte[] latest, Schema schema, AvroFormat format) throws AvroBaseException {
+  protected T
+  readValue(byte[] latest, Schema schema, AvroFormat format) throws AvroBaseException {
     try {
       Decoder d;
       switch (format) {
@@ -159,7 +162,8 @@ public abstract class AvroBaseImpl<T extends SpecificRecord, K> implements AvroB
           d = factory.createBinaryDecoder(new ByteArrayInputStream(latest), null);
           break;
       }
-      SpecificDatumReader<T> sdr = new SpecificDatumReader<T>(schema);
+      SpecificDatumReader<T> sdr = new SpecificDatumReader<T>(expectedSchema != null ? expectedSchema : schema);
+      sdr.setSchema(schema);
       return sdr.read(null, d);
     } catch (IOException e) {
       throw new AvroBaseException("Failed to read value", e);

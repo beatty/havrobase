@@ -9,6 +9,7 @@ import org.apache.avro.generic.GenericArray;
 import org.apache.avro.specific.SpecificRecord;
 import org.apache.commons.lang.NotImplementedException;
 import org.apache.solr.client.solrj.SolrQuery;
+import org.apache.solr.client.solrj.SolrRequest;
 import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.impl.CommonsHttpSolrServer;
@@ -44,13 +45,12 @@ import java.util.TimerTask;
  * Date: Jun 27, 2010
  * Time: 10:50:31 AM
  */
-public abstract class SolrAvroBase<T extends SpecificRecord, K> extends AvroBaseImpl<T, K> {
+public abstract class SolrAvroBase<T extends SpecificRecord, K> extends AvroBaseImpl<T, K, SQ> {
   private static final String SCHEMA_LOCATION = "/admin/file/?file=schema.xml";
   protected SolrServer solrServer;
   protected String uniqueKey;
   protected List<String> fields;
 
-  // TODO: Replace this with a better way to commit / optimize
   private volatile long lastCommit = System.currentTimeMillis();
   private volatile long lastOptimize = System.currentTimeMillis();
   private static Timer commitTimer = new Timer();
@@ -66,8 +66,8 @@ public abstract class SolrAvroBase<T extends SpecificRecord, K> extends AvroBase
    * @param solrURL
    * @throws avrobase.AvroBaseException
    */
-  public SolrAvroBase(AvroFormat format, String solrURL) throws AvroBaseException {
-    super(format);
+  public SolrAvroBase(Schema expectedSchema, AvroFormat format, String solrURL) throws AvroBaseException {
+    super(expectedSchema, format);
     if (solrURL != null) {
       try {
         solrServer = new CommonsHttpSolrServer(solrURL);
@@ -114,7 +114,7 @@ public abstract class SolrAvroBase<T extends SpecificRecord, K> extends AvroBase
    * @throws avrobase.AvroBaseException
    */
   @Override
-  public Iterable<Row<T, K>> search(String query, int start, int rows) throws AvroBaseException {
+  public Iterable<Row<T, K>> search(SQ sqh) throws AvroBaseException {
     if (solrServer == null) {
       throw new AvroBaseException("Searching for this type is not enabled");
     }
@@ -130,9 +130,9 @@ public abstract class SolrAvroBase<T extends SpecificRecord, K> extends AvroBase
         throw new AvroBaseException("Solr commit failed");
       }
     }
-    SolrQuery solrQuery = new SolrQuery().setQuery(query).setStart(start).setRows(rows).setFields(uniqueKey);
+    SolrQuery solrQuery = sqh.generateQuery(uniqueKey);    
     try {
-      QueryResponse queryResponse = solrServer.query(solrQuery);
+      QueryResponse queryResponse = solrServer.query(solrQuery, SolrRequest.METHOD.POST);
       SolrDocumentList list = queryResponse.getResults();
       final Iterator<SolrDocument> solrDocumentIterator = list.iterator();
       return new Iterable<Row<T, K>>() {
@@ -165,7 +165,7 @@ public abstract class SolrAvroBase<T extends SpecificRecord, K> extends AvroBase
         }
       };
     } catch (SolrServerException e) {
-      throw new AvroBaseException("Query failure: " + query, e);
+      throw new AvroBaseException("Query failure: " + sqh.query, e);
     }
   }
 
@@ -236,7 +236,6 @@ public abstract class SolrAvroBase<T extends SpecificRecord, K> extends AvroBase
         commitTimer.schedule(new TimerTask() {
           @Override
           public void run() {
-            // TODO: this needs to be tested to make sure it is committing the last tx
             if (oldLastCommit == lastCommit) {
               lastCommit = System.currentTimeMillis();
               UpdateRequest req = new UpdateRequest();
