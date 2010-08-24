@@ -162,8 +162,7 @@ public abstract class AvroBaseImpl<T extends SpecificRecord, K, Q> implements Av
           d = factory.createBinaryDecoder(new ByteArrayInputStream(latest), null);
           break;
       }
-      SpecificDatumReader<T> sdr = new SpecificDatumReader<T>(expectedSchema != null ? expectedSchema : schema);
-      sdr.setSchema(schema);
+      SpecificDatumReader<T> sdr = new SpecificDatumReader<T>(schema, expectedSchema);
       return sdr.read(null, d);
     } catch (IOException e) {
       throw new AvroBaseException("Failed to read value", e);
