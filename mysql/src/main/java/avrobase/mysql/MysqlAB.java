@@ -315,6 +315,7 @@ public class MysqlAB<T extends SpecificRecord, K, Q> extends AvroBaseImpl<T, K, 
           AvroFormat format = AvroFormat.values()[rs.getByte(3)];
           byte[] avro = rs.getBytes(4);
           Schema schema = getSchema(schema_id);
+
           if (schema != null) {
             return new Row<T, K>(readValue(avro, schema, format), keytx.fromBytes(row), version);
           } else {
@@ -468,6 +469,7 @@ public class MysqlAB<T extends SpecificRecord, K, Q> extends AvroBaseImpl<T, K, 
           AvroFormat format = AvroFormat.values()[rs.getByte(4)];
           byte[] avro = rs.getBytes(5);
           Schema schema = getSchema(schema_id);
+
           if (schema != null) {
             rows.add(new Row<T, K>(readValue(avro, schema, format), keytx.fromBytes(row), version));
           } else {
