@@ -31,7 +31,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * Time: 1:59:33 PM
  * TODO: consider column-type-specific support (via keytx)
  */
-public class MysqlAB<T extends SpecificRecord, K, Q> extends AvroBaseImpl<T, K, Q> implements AvroBase<T, K, Q> {
+public class MysqlAB<T extends SpecificRecord, K> extends AvroBaseImpl<T, K> {
   private final DataSource datasource;
   private final AvroFormat storageFormat;
   private final String mysqlTableName;
@@ -191,11 +191,6 @@ public class MysqlAB<T extends SpecificRecord, K, Q> extends AvroBaseImpl<T, K, 
     return scan(startRow != null ? keytx.toBytes(startRow) : null, stopRow != null ? keytx.toBytes(stopRow) : null);
   }
 
-  @Override
-  public Iterable<Row<T, K>> search(Q query) throws AvroBaseException {
-    throw new NotImplementedException();
-  }
-
   private abstract class Update {
     private String statement;
 
@@ -313,7 +308,6 @@ public class MysqlAB<T extends SpecificRecord, K, Q> extends AvroBaseImpl<T, K, 
           AvroFormat format = AvroFormat.values()[rs.getByte(3)];
           byte[] avro = rs.getBytes(4);
           Schema schema = getSchema(schema_id);
-
           if (schema != null) {
             return new Row<T, K>(readValue(avro, schema, format), keytx.fromBytes(row), version);
           } else {
@@ -456,7 +450,6 @@ public class MysqlAB<T extends SpecificRecord, K, Q> extends AvroBaseImpl<T, K, 
           AvroFormat format = AvroFormat.values()[rs.getByte(4)];
           byte[] avro = rs.getBytes(5);
           Schema schema = getSchema(schema_id);
-
           if (schema != null) {
             rows.add(new Row<T, K>(readValue(avro, schema, format), keytx.fromBytes(row), version));
           } else {

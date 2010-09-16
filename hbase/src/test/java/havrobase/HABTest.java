@@ -7,9 +7,11 @@ import avrobase.AvroFormat;
 import avrobase.Row;
 import bagcheck.GenderType;
 import bagcheck.User;
+import com.google.common.base.Supplier;
 import com.google.inject.Binder;
 import com.google.inject.Module;
 import com.google.inject.Provider;
+import com.google.inject.TypeLiteral;
 import com.google.inject.name.Names;
 import org.apache.avro.Schema;
 import org.apache.avro.io.JsonDecoder;
@@ -64,6 +66,12 @@ public class HABTest {
 
   static class HABModule implements Module {
     public static final HBaseAdmin admin;
+    private static final Provider<Supplier<byte[]>> NULL_SUPPLIER_PROVIDER = new Provider<Supplier<byte[]>>() {
+      @Override
+      public Supplier<byte[]> get() {
+        return null;
+      }
+    };
 
     static {
       try {
@@ -79,9 +87,9 @@ public class HABTest {
       binder.bind(byte[].class).annotatedWith(Names.named("schema")).toInstance(SCHEMA_TABLE);
       binder.bind(byte[].class).annotatedWith(Names.named("table")).toInstance(TABLE);
       binder.bind(byte[].class).annotatedWith(Names.named("family")).toInstance(COLUMN_FAMILY);
-//      binder.bind(String.class).annotatedWith(Names.named("solr")).toInstance("http://localhost:8983/solr/user");
       binder.bind(String.class).annotatedWith(Names.named("solr")).toProvider(NULL_STRING_PROVIDER);
       binder.bind(HAB.CreateType.class).toInstance(HAB.CreateType.SEQUENTIAL);
+      binder.bind(new TypeLiteral<Supplier<byte[]>>() {}).toProvider(NULL_SUPPLIER_PROVIDER);
       binder.bind(HTablePool.class).toInstance(new HTablePool());
       binder.bind(HBaseAdmin.class).toInstance(admin);
     }
@@ -139,7 +147,7 @@ public class HABTest {
 
   @Test
   public void testNoRow() throws AvroBaseException {
-    AvroBase<User, byte[], String> instance = AvroBaseFactory.createAvroBase(new HABModule(), HAB.class, AvroFormat.BINARY);
+    AvroBase<User, byte[]> instance = AvroBaseFactory.createAvroBase(new HABModule(), HAB.class, AvroFormat.BINARY);
     Row<User, byte[]> row = instance.get(Bytes.toBytes("lukew"));
     assertEquals(null, row);
   }
@@ -147,7 +155,7 @@ public class HABTest {
   @Test
   public void testBenchmark() throws AvroBaseException, InterruptedException {
     deleteTable(TABLE);
-    final AvroBase<User, byte[], String> instance = AvroBaseFactory.createAvroBase(new HABModule(), HAB.class, AvroFormat.BINARY);
+    final AvroBase<User, byte[]> instance = AvroBaseFactory.createAvroBase(new HABModule(), HAB.class, AvroFormat.BINARY);
     final User saved = new User();
     saved.firstName = $("Sam");
     saved.lastName = $("Pullara");
@@ -184,7 +192,7 @@ public class HABTest {
   @Test
   public void testSave() throws AvroBaseException {
     deleteTable(SCHEMA_TABLE);
-    AvroBase<User, byte[], String> userHAB = AvroBaseFactory.createAvroBase(new HABModule(), HAB.class, AvroFormat.BINARY);
+    AvroBase<User, byte[]> userHAB = AvroBaseFactory.createAvroBase(new HABModule(), HAB.class, AvroFormat.BINARY);
     User saved = new User();
     saved.firstName = $("Sam");
     saved.lastName = $("Pullara");
@@ -205,7 +213,7 @@ public class HABTest {
   @Test
   public void testCreateSequential() throws AvroBaseException {
     deleteTable(SCHEMA_TABLE);
-    AvroBase<User, byte[], String> userHAB = AvroBaseFactory.createAvroBase(new HABModule(), HAB.class, AvroFormat.BINARY);
+    AvroBase<User, byte[]> userHAB = AvroBaseFactory.createAvroBase(new HABModule(), HAB.class, AvroFormat.BINARY);
     User saved = new User();
     saved.firstName = $("Sam");
     saved.lastName = $("Pullara");
@@ -225,7 +233,7 @@ public class HABTest {
 
   @Test
   public void testSaveFail() throws AvroBaseException {
-    AvroBase<User, byte[], String> userHAB = AvroBaseFactory.createAvroBase(new HABModule(), HAB.class, AvroFormat.BINARY);
+    AvroBase<User, byte[]> userHAB = AvroBaseFactory.createAvroBase(new HABModule(), HAB.class, AvroFormat.BINARY);
     User saved = new User();
     saved.firstName = $("Sam");
     saved.lastName = $("Pullara");
@@ -243,7 +251,7 @@ public class HABTest {
 
   @Test
   public void testSaveJsonFormat() throws AvroBaseException, IOException {
-    AvroBase<User, byte[], String> userHAB = AvroBaseFactory.createAvroBase(new HABModule(), HAB.class, AvroFormat.JSON);
+    AvroBase<User, byte[]> userHAB = AvroBaseFactory.createAvroBase(new HABModule(), HAB.class, AvroFormat.JSON);
     User saved = new User();
     saved.firstName = $("Sam");
     saved.lastName = $("Pullara");
@@ -285,7 +293,7 @@ public class HABTest {
   @Test
   public void testScan() throws AvroBaseException, IOException {
     testSaveJsonFormat();
-    AvroBase<User, byte[], String> userHAB = AvroBaseFactory.createAvroBase(new HABModule(), HAB.class, AvroFormat.BINARY);
+    AvroBase<User, byte[]> userHAB = AvroBaseFactory.createAvroBase(new HABModule(), HAB.class, AvroFormat.BINARY);
     byte[] row = Bytes.toBytes("spullara");
     Row<User, byte[]> loaded = userHAB.get(row);
     for (Row<User, byte[]> user : userHAB.scan(row, row)) {
@@ -333,7 +341,7 @@ public class HABTest {
   @Test
   public void testAddFamily() {
     testSave();
-    AvroBase<User, byte[], String> userHAB = AvroBaseFactory.createAvroBase(new HABModule(), HAB.class, AvroFormat.BINARY);
+    AvroBase<User, byte[]> userHAB = AvroBaseFactory.createAvroBase(new HABModule(), HAB.class, AvroFormat.BINARY);
     Row<User, byte[]> row = userHAB.get("spullara".getBytes());
   }
 

@@ -1,6 +1,10 @@
 package havrobase;
 
-import avrobase.*;
+import avrobase.AvroBaseException;
+import avrobase.AvroBaseImpl;
+import avrobase.AvroFormat;
+import avrobase.Row;
+import com.google.common.base.Supplier;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
 import org.apache.avro.Schema;
@@ -39,7 +43,7 @@ import java.util.Random;
  * Date: Jun 8, 2010
  * Time: 5:13:35 PM
  */
-public class HAB<T extends SpecificRecord, Q> extends AvroBaseImpl<T, byte[], Q> {
+public class HAB<T extends SpecificRecord> extends AvroBaseImpl<T, byte[]> {
 
   // Avro Table Constants
   private final byte[] VERSION_COLUMN = $("v");
@@ -59,7 +63,7 @@ public class HAB<T extends SpecificRecord, Q> extends AvroBaseImpl<T, byte[], Q>
   private byte[] family;
   private byte[] schemaName;
   private CreateType createType;
-  private KeyGenerator<byte[]> keygen;
+  private Supplier<byte[]> keygen;
   protected static final TimestampGenerator TIMESTAMP_GENERATOR = new TimestampGenerator();
 
   public enum CreateType {
@@ -88,7 +92,7 @@ public class HAB<T extends SpecificRecord, Q> extends AvroBaseImpl<T, byte[], Q>
       @Named("schema") byte[] schemaName,
       AvroFormat format,
       CreateType createType,
-      KeyGenerator<byte[]> keygen
+      Supplier<byte[]> keygen
   ) throws AvroBaseException {
     super(expectedSchema, format);
     this.pool = pool;
@@ -177,6 +181,10 @@ public class HAB<T extends SpecificRecord, Q> extends AvroBaseImpl<T, byte[], Q>
     HTableInterface table = getTable();
     try {
       Result result = getHBaseRow(table, row, family);
+      // TODO: This is working around a bug in HBASE 0.89
+      if (row.length == 0 && !Bytes.equals(row, result.getRow())) {
+        return null;
+      }
       return getRowResult(result, row);
     } catch (IOException e) {
       throw new AvroBaseException(e);
@@ -194,7 +202,7 @@ public class HAB<T extends SpecificRecord, Q> extends AvroBaseImpl<T, byte[], Q>
         // loop until we don't get an ID collision
         byte[] row;
         do {
-          row = keygen.generate();
+          row = keygen.get();
         } while (!put(row, value, 0));
         return row;
       }
@@ -371,10 +379,6 @@ public class HAB<T extends SpecificRecord, Q> extends AvroBaseImpl<T, byte[], Q>
     }
   }
 
-  @Override
-  public Iterable<Row<T, byte[]>> search(Q query) throws AvroBaseException {
-    throw new UnsupportedOperationException();
-  }
 
   // Given an HBase row result take it apart and populate the Row wrapper metadata.
 
