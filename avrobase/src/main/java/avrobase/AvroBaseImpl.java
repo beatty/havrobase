@@ -175,8 +175,4 @@ public abstract class AvroBaseImpl<T extends SpecificRecord, K, Q> implements Av
       throw new AvroBaseException("Failed to read value", e);
     }
   }
-
-  protected abstract K $(String string);
-
-  protected abstract String $_(K bytes);
 }
