@@ -6,6 +6,7 @@ import avrobase.AvroFormat;
 import avrobase.Row;
 import com.google.common.base.Supplier;
 import com.google.inject.Inject;
+import com.google.inject.internal.Nullable;
 import com.google.inject.name.Named;
 import org.apache.avro.Schema;
 import org.apache.avro.specific.SpecificRecord;
@@ -92,7 +93,7 @@ public class HAB<T extends SpecificRecord> extends AvroBaseImpl<T, byte[]> {
       @Named("schema") byte[] schemaName,
       AvroFormat format,
       CreateType createType,
-      Supplier<byte[]> keygen
+      @Nullable Supplier<byte[]> keygen
   ) throws AvroBaseException {
     super(expectedSchema, format);
     this.pool = pool;
@@ -378,7 +379,6 @@ public class HAB<T extends SpecificRecord> extends AvroBaseImpl<T, byte[]> {
       pool.putTable(table);
     }
   }
-
 
   // Given an HBase row result take it apart and populate the Row wrapper metadata.
 

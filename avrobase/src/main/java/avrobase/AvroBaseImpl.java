@@ -155,7 +155,8 @@ public abstract class AvroBaseImpl<T extends SpecificRecord, K> implements AvroB
    * Read the avro serialized data using the specified schema and format
    * in the hbase row
    */
-  protected T readValue(byte[] latest, Schema schema, AvroFormat format) throws AvroBaseException {
+  protected T
+  readValue(byte[] latest, Schema schema, AvroFormat format) throws AvroBaseException {
     try {
       Decoder d;
       switch (format) {
