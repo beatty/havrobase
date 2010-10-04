@@ -32,7 +32,7 @@ public abstract class AvroBaseImpl<T extends SpecificRecord, K> implements AvroB
 
   protected Map<String, Schema> schemaCache = new ConcurrentHashMap<String, Schema>();
   protected Map<Schema, String> hashCache = new ConcurrentHashMap<Schema, String>();
-  private Schema actualSchema;
+  private Schema readerSchema;
   protected AvroFormat format;
 
   protected static final Charset UTF8 = Charset.forName("utf-8");
@@ -44,8 +44,8 @@ public abstract class AvroBaseImpl<T extends SpecificRecord, K> implements AvroB
    *
    * @param format
    */
-  public AvroBaseImpl(Schema actualSchema, AvroFormat format) {
-    this.actualSchema = actualSchema;
+  public AvroBaseImpl(Schema readerSchema, AvroFormat format) {
+    this.readerSchema = readerSchema;
     this.format = format;
   }
 
@@ -159,12 +159,12 @@ public abstract class AvroBaseImpl<T extends SpecificRecord, K> implements AvroB
    * in the hbase row
    */
   protected T
-  readValue(byte[] latest, Schema schema, AvroFormat format) throws AvroBaseException {
+  readValue(byte[] latest, Schema writerSchema, AvroFormat format) throws AvroBaseException {
     try {
       Decoder d;
       switch (format) {
         case JSON:
-          d = new JsonDecoder(schema, new ByteArrayInputStream(latest));
+          d = new JsonDecoder(writerSchema, new ByteArrayInputStream(latest));
           break;
         case BINARY:
         default:
@@ -172,7 +172,7 @@ public abstract class AvroBaseImpl<T extends SpecificRecord, K> implements AvroB
           d = factory.createBinaryDecoder(new ByteArrayInputStream(latest), null);
           break;
       }
-      SpecificDatumReader<T> sdr = new SpecificDatumReader<T>(schema, actualSchema);
+      SpecificDatumReader<T> sdr = new SpecificDatumReader<T>(writerSchema, readerSchema);
       return sdr.read(null, d);
     } catch (IOException e) {
       throw new AvroBaseException("Failed to read value", e);
